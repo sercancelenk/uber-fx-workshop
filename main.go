@@ -7,30 +7,40 @@ import (
 	"go.uber.org/zap"
 	"net"
 	"net/http"
+	"time"
+	"uber-fx-workshop/config"
 	"uber-fx-workshop/route"
 	"uber-fx-workshop/service"
 )
 
 func main() {
-	fx.New(
+	// Create logger
+	logger := zap.NewExample()
+	defer logger.Sync()
+
+	// Uber Fx already listens for OS signals, so no need for signal.NotifyContext()
+	app := fx.New(
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
 		}),
 		fx.Provide(
 			NewHttpServer,
-			fx.Annotate(
-				route.NewServeMux,
-				fx.ParamTags(`group:"routes"`),
-			),
+			route.Module,
 			route.AsRoute(route.NewEchoHandler),
 			route.AsRoute(route.NewHelloHandler),
 			zap.NewExample,
 			fx.Annotate(
 				service.NewConsumer1,
 			),
+			config.LoadConfig,
 		),
 		fx.Invoke(func(*http.Server) {}),
-	).Run()
+	)
+
+	// Use app.Run() to properly block and handle signals (Uber Fx does this automatically)
+	app.Run()
+
+	logger.Info("Application shutdown complete.")
 }
 
 func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux, log *zap.Logger) *http.Server {
@@ -42,16 +52,31 @@ func NewHttpServer(lc fx.Lifecycle, mux *http.ServeMux, log *zap.Logger) *http.S
 				return err
 			}
 			log.Info("Starting HTTP server", zap.String("addr", srv.Addr))
+
+			// Run the server in a goroutine so it doesn't block
 			go func() {
-				err := srv.Serve(ln)
-				if err != nil {
-					panic("Server could not started.")
+				if err := srv.Serve(ln); err != nil && err != http.ErrServerClosed {
+					log.Fatal("HTTP server error", zap.Error(err))
 				}
 			}()
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			return srv.Shutdown(ctx)
+			log.Info("Stopping HTTP server: No longer accepting new connections...")
+
+			// 1️⃣ Stop accepting new connections immediately
+			shutdownCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+			defer cancel()
+
+			// 2️⃣ Attempt graceful shutdown
+			err := srv.Shutdown(shutdownCtx)
+			if err != nil {
+				log.Error("HTTP server shutdown error", zap.Error(err))
+				return err
+			}
+
+			log.Info("HTTP server shutdown complete.")
+			return nil
 		},
 	})
 	return srv

@@ -1,0 +1,84 @@
+# Binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.o
+
+# Compiled files and build artifacts
+/bin/
+/obj/
+/out/
+/dist/
+*.test
+
+# Vendor directory (if you use Go modules, this is optional)
+vendor/
+
+# Go build artifacts
+*.log
+*.cache
+*.tmp
+*.bak
+*.swp
+
+# Go module and dependency files
+go.sum
+go.work
+go.work.sum
+
+# IDE and editor-specific files
+.vscode/
+.idea/
+*.iml
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.DS_Store
+
+# Debug and profiling files
+*.prof
+*.trace
+*.cover
+*.cov
+
+# Logs and temporary files
+debug.log
+nohup.out
+*.pid
+*.seed
+
+# Docker files (if using Docker)
+docker-compose.override.yml
+.dockerignore
+
+# Kubernetes and Helm files (optional)
+*.yaml.lock
+helm-release.yaml
+
+# Git hooks
+.hooks/
+
+# Cache directories
+node_modules/
+__pycache__/
+*.pyc
+
+# Secrets and environment files
+.env
+.env.local
+.env.test
+.env.production
+.envrc
+secrets.json
+config.yaml
+
+# Ignore test coverage reports
+coverage.out
+cover.out
+
+# JetBrains Goland-specific files
+*.idea/
